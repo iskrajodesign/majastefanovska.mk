@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#08080A;scroll-behavior:smooth;}
+  ::selection{background:#B91C1C;color:#F4F1EA;}
+  @keyframes pulse-dot{0%,100%{opacity:1;transform:translate(-50%,-50%) scale(1);}50%{opacity:0.35;transform:translate(-50%,-50%) scale(0.7);}}
+  @keyframes marquee-left{from{transform:translateX(0);}to{transform:translateX(-50%);}}
+  @keyframes marquee-right{from{transform:translateX(-50%);}to{transform:translateX(0);}}
+  @keyframes spin-badge{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  @keyframes float1{0%,100%{transform:translateY(0);}50%{transform:translateY(-16px);}}
+  @keyframes float2{0%,100%{transform:translateY(0);}50%{transform:translateY(14px);}}
+  @keyframes float3{0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);}}
+  @keyframes float4{0%,100%{transform:translateY(0);}50%{transform:translateY(18px);}}
+  @keyframes hero-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.3);}}
+  @keyframes menu-in{from{opacity:0;transform:translateY(-10px);}to{opacity:1;transform:translateY(0);}}
+  @keyframes draw-erase{0%{stroke-dashoffset:820;}35%{stroke-dashoffset:0;}65%{stroke-dashoffset:0;}100%{stroke-dashoffset:-820;}}
+  input::placeholder, textarea::placeholder{color:#8a8680;}
+  input, textarea, button{min-height:44px;}
+  @media (hover: none){
+    .app-root{cursor:auto !important;}
+    .brush-cursor{display:none !important;}
+  }
+  html, body{overflow-x:hidden;max-width:100vw;}
+  @media (max-width:768px){
+    .app-root{overflow-x:hidden;max-width:100vw;}
+    .nav-pill{padding:8px 14px !important;font-size:10px !important;}
+    .contact-form input, .contact-form textarea, .contact-form button{width:100%;min-height:48px;}
+    .archive-grid{display:flex !important;flex-direction:column !important;gap:32px !important;}
+    .archive-tile{display:flex !important;flex-direction:column !important;width:100% !important;height:auto !important;grid-column:auto !important;grid-row:auto !important;transform:none !important;}
+    .archive-tile > image-slot{display:block !important;visibility:visible !important;width:100% !important;height:auto !important;min-height:280px;aspect-ratio:4/5;border-radius:0 !important;flex:0 0 auto;}
+    .archive-tile::before{content:attr(data-category-label);display:block;font-family:'Fragment Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#7a7a80;border-bottom:1px solid #27272A;padding-bottom:8px;margin-bottom:12px;}
+    .archive-accent{display:none !important;}
+    .archive-tile[data-hidden="true"]{display:none !important;}
+    .archive-caption{display:block !important;}
+    .category-tabs{flex-wrap:nowrap !important;overflow-x:auto;white-space:nowrap;padding-bottom:12px;}
+    .bio-grid{grid-template-columns:1fr !important;gap:32px !important;padding:0 20px;}
+    .bio-portrait{display:block !important;visibility:visible !important;order:-1;width:100%;max-width:100%;height:340px !important;max-height:480px;aspect-ratio:auto !important;margin-bottom:24px;}
+    .bio-portrait > *{display:block !important;visibility:visible !important;position:absolute !important;inset:0 !important;width:100% !important;height:100% !important;max-height:none !important;object-fit:cover;}
+    .bio-text p{font-size:16px !important;line-height:1.6 !important;color:rgba(244,241,234,0.9) !important;}
+    .bio-matrix{grid-template-columns:1fr !important;gap:0 !important;}
+    .bio-matrix > div{border-top:none !important;border-left:none !important;border-bottom:1px solid rgba(255,255,255,0.15);padding:16px 0 !important;}
+    .site-footer-row{flex-direction:column !important;justify-content:center !important;align-items:center !important;text-align:center !important;gap:16px !important;}
+    .site-footer-row > div{justify-content:center !important;}
+  }
+  .timeline-track::-webkit-scrollbar{height:3px;}
+  .timeline-track::-webkit-scrollbar-track{background:#27272A;}
+  .timeline-track::-webkit-scrollbar-thumb{background:#DC2626;}
+  .timeline-track{scrollbar-width:thin;scrollbar-color:#DC2626 #27272A;}
+</style>
+<script src="./image-slot.js"></script>
+</helmet>
+
+<div class="app-root" style="background:#08080A;color:#F4F1EA;font-family:'Instrument Serif',serif;overflow-x:hidden;position:relative;cursor:none;" onMouseMove="{{onGlobalMove}}">
+
+  <canvas ref="{{trailCanvasRef}}" style="position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:298;"></canvas>
+  <svg class="brush-cursor" width="38" height="38" viewBox="0 0 38 38" style="position:fixed;left:{{cursorX}}px;top:{{cursorY}}px;transform-origin:0 0;transform:{{brushCursorTransform}};pointer-events:none;z-index:99999;transition:transform 0.15s cubic-bezier(.34,1.56,.64,1);overflow:visible;">
+    <line x1="8" y1="8" x2="34" y2="34" stroke="{{brushCursorHandleColor}}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="4.5" y1="4.5" x2="8" y2="8" stroke="#C0C0C0" stroke-width="4.4" stroke-linecap="butt"/>
+    <path d="M0,0 L7,1.5 L1.5,7 Z" fill="{{brushCursorColor}}"/>
+  </svg>
+
+  <svg width="150" height="150" viewBox="0 0 150 150" style="position:fixed;bottom:24px;left:24px;z-index:150;pointer-events:none;animation:spin-badge 18s linear infinite reverse;opacity:0.5;">
+    <defs><path id="circlePathBottom" d="M 75,75 m -58,0 a 58,58 0 1,1 116,0 a 58,58 0 1,1 -116,0"/></defs>
+    <text font-family="Fragment Mono, monospace" font-size="10" letter-spacing="2" fill="#B91C1C">
+      <textPath href="#circlePathBottom">RAW EMOTION IS NOT FOR SALE • RAW EMOTION IS NOT FOR SALE •</textPath>
+    </text>
+  </svg>
+
+  <sc-if value="{{cursorLabel}}" hint-placeholder-val="{{false}}">
+    <div style="position:fixed;left:{{cursorX}}px;top:{{cursorY}}px;transform:translate(28px,-50%);pointer-events:none;z-index:300;font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;background:#08080A;color:#F4F1EA;padding:8px 14px;white-space:nowrap;">{{cursorLabel}}</div>
+  </sc-if>
+  <sc-if value="{{hoverPreviewSrc}}" hint-placeholder-val="{{false}}">
+    <div style="position:fixed;left:{{cursorX}}px;top:{{cursorY}}px;transform:translate(-50%,-120%);pointer-events:none;z-index:299;width:220px;height:280px;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
+      <image-slot id="preview-float" shape="rect" src="{{hoverPreviewSrc}}" placeholder="" style="width:100%;height:100%;"></image-slot>
+    </div>
+  </sc-if>
+
+  <nav style="position:fixed;top:20px;left:0;right:0;z-index:1000;display:flex;justify-content:space-between;align-items:center;padding:0 clamp(16px,3vw,64px);pointer-events:none;">
+    <a href="#sec-hero" class="nav-pill" style="font-family:'Fragment Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#F4F1EA;text-decoration:none;background:rgba(15,15,18,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:10px 20px;pointer-events:auto;" style-hover="color:#DC2626;">M.S. / HOME</a>
+    <button onClick="{{onMenuToggle}}" class="nav-pill" style="font-family:'Fragment Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#F4F1EA;background:rgba(15,15,18,0.65);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.1);border-radius:999px;padding:10px 20px;pointer-events:auto;cursor:none;" style-hover="color:#DC2626;">INDEX (-)</button>
+  </nav>
+
+  <sc-if value="{{menuOpen}}" hint-placeholder-val="{{false}}">
+    <div style="position:fixed;inset:0;background:rgba(10,10,12,0.98);backdrop-filter:blur(20px);z-index:2000;display:flex;flex-direction:column;justify-content:center;padding:0 clamp(24px,6vw,120px);animation:menu-in 0.4s cubic-bezier(.16,.84,.44,1);">
+      <button onClick="{{onMenuToggle}}" style="position:absolute;top:24px;right:clamp(24px,4vw,64px);background:transparent;border:none;color:#F4F1EA;font-family:'Fragment Mono',monospace;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;cursor:none;" style-hover="color:#DC2626;">CLOSE (X)</button>
+      <sc-for list="{{menuLinks}}" as="link" hint-placeholder-count="5">
+        <a href="{{link.href}}" onClick="{{onMenuToggle}}" onMouseEnter="{{link.onEnter}}" onMouseLeave="{{onMenuLeave}}"
+          style="display:block;font-size:clamp(32px,6vw,64px);font-style:italic;color:{{link.color}};text-decoration:none;padding:14px 0;transition:color 0.2s ease;">{{link.label}}</a>
+      </sc-for>
+    </div>
+  </sc-if>
+  <sc-if value="{{menuPreviewSrc}}" hint-placeholder-val="{{false}}">
+    <div style="position:fixed;left:{{cursorX}}px;top:{{cursorY}}px;transform:translate(40px,-50%);pointer-events:none;z-index:2001;width:200px;height:250px;box-shadow:0 30px 60px rgba(0,0,0,0.6);">
+      <image-slot id="menu-preview" shape="rect" src="{{menuPreviewSrc}}" placeholder="" style="width:100%;height:100%;"></image-slot>
+    </div>
+  </sc-if>
+
+  <!-- 1. HERO -->
+  <section id="sec-hero" data-brush-color="#DC2626" style="position:relative;height:100vh;min-height:640px;overflow:hidden;display:flex;flex-direction:column;justify-content:center;" onMouseMove="{{onHeroMove}}" onMouseLeave="{{onHeroLeave}}">
+    <div style="position:absolute;inset:0;background:#08080A;">
+      <sc-for list="{{heroSlides}}" as="slide" hint-placeholder-count="5">
+        <div style="position:absolute;inset:0;opacity:{{slide.opacity}};animation:hero-pulse {{slide.pulseDur}}s ease-in-out infinite;transition:opacity 1.4s ease;">
+          <div style="width:100%;height:100%;transform:perspective(1200px) translate({{heroTiltX}}px,{{heroTiltY}}px) rotateX({{heroRX}}deg) rotateY({{heroRY}}deg);transition:transform 0.2s ease-out;">
+            <image-slot id="{{slide.imgId}}" shape="rect" src="{{slide.imgSrc}}" placeholder="" style="width:100%;height:100%;object-fit:cover;"></image-slot>
+          </div>
+        </div>
+      </sc-for>
+      <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(8,8,10,0.15) 0%,rgba(8,8,10,0.7) 75%);"></div>
+    </div>
+
+    <div style="position:relative;z-index:3;text-align:center;padding:0 24px;">
+      <div style="font-family:'Fragment Mono',monospace;font-size:13px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#F4F1EA;margin-bottom:24px;">STUDIO ARCHIVE - SKOPJE / FLU 1996</div>
+      <h1 style="font-size:clamp(48px,8.5vw,110px);line-height:0.95;font-weight:400;margin:0;letter-spacing:-0.01em;">MAJA STEFANOVSKA</h1>
+      <div style="font-size:clamp(28px,4vw,48px);font-style:italic;color:#c7c4bc;margin-top:8px;">/ Visual Artist</div>
+    </div>
+  </section>
+
+  <!-- 2. PHILOSOPHY -->
+  <section id="sec-manifesto" ref="{{philosophyRef}}" data-reveal-key="philosophy" data-brush-color="#111111" style="background:#F4F1EA;color:#08080A;padding:clamp(64px,10vw,160px) clamp(24px,4vw,64px);">
+    <p style="max-width:1000px;margin:0 auto;font-size:clamp(28px,4.2vw,52px);line-height:1.3;text-align:center;opacity:{{philosophyOpacity}};transform:{{philosophyTransform}};transition:opacity 0.9s cubic-bezier(.16,.84,.44,1),transform 0.9s cubic-bezier(.16,.84,.44,1);">Canvas as a friction of space, mind, and pigment.<br/><em style="font-style:italic;font-weight:600;color:#B91C1C;">The canvas is the only surface that argues back.</em><br/>Non-conformity is not a style choice here - it is the working condition. <span style="font-size:16px;">- M.S.</span></p>
+  </section>
+
+  <!-- 3. ARCHIVE MASONRY -->
+  <section id="sec-track" data-brush-color="#DC2626" style="padding:clamp(64px,10vw,160px) clamp(24px,4vw,64px) clamp(48px,8vw,120px) clamp(24px,4vw,64px);">
+    <div style="font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#7a7a80;margin-bottom:24px;">ARTWORK ARCHIVE - HOVER TO INSPECT</div>
+    <div class="category-tabs" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:40px;">
+      <sc-for list="{{categories}}" as="cat" hint-placeholder-count="5">
+        <button onClick="{{cat.onSelect}}" style="background:transparent;border:1px solid {{cat.borderColor}};color:{{cat.textColor}};font-family:'Fragment Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;padding:8px 16px;cursor:none;flex:0 0 auto;">{{cat.label}}</button>
+      </sc-for>
+    </div>
+    <div ref="{{archiveRef}}" data-reveal-key="archive" class="archive-grid" style="position:relative;max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:70px;gap:16px;opacity:{{archiveOpacity}};transform:{{archiveTransform}};transition:opacity 0.9s cubic-bezier(.16,.84,.44,1),transform 0.9s cubic-bezier(.16,.84,.44,1);">
+      <sc-for list="{{tiles}}" as="tile" hint-placeholder-count="5">
+        <div onMouseEnter="{{tile.onEnter}}" onMouseMove="{{tile.onEnter}}" onMouseLeave="{{onTileLeave}}" data-brush-color="{{tile.brushColor}}" data-category-label="{{tile.categoryLabel}}" data-hidden="{{tile.hiddenByCategory}}" class="archive-tile"
+          style="grid-column:{{tile.col}};grid-row:{{tile.row}};position:relative;filter:{{tile.dimFilter}};transform:{{tile.transform}};transition:filter 0.3s ease,transform 0.3s ease;z-index:{{tile.z}};">
+          <image-slot id="{{tile.imgId}}" shape="rect" src="{{tile.imgSrc}}" placeholder="" style="width:100%;height:100%;"></image-slot>
+          <div class="archive-caption" style="display:none;font-family:'Fragment Mono',monospace;padding-top:10px;">
+            <div style="font-size:16px;font-style:italic;color:#F4F1EA;">{{tile.title}}</div>
+            <div style="font-size:11px;letter-spacing:0.05em;text-transform:uppercase;color:#7a7a80;margin-top:4px;">{{tile.medium}}</div>
+          </div>
+        </div>
+      </sc-for>
+      <div class="archive-accent" style="position:absolute;top:250px;left:64%;width:150px;transform:rotate(-6deg);z-index:6;box-shadow:0 25px 50px rgba(0,0,0,0.55);border:6px solid #F4F1EA;">
+        <image-slot id="tile-accent" shape="rect" src="uploads/ALEKSANDAR-PROKOPIEV-MAJA-STEFANOVSKA-SKOPSKO-HAIKU.jpg" placeholder="" style="width:100%;height:190px;"></image-slot>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3B. BIOGRAPHY -->
+  <section id="sec-bio" data-brush-color="#DC2626" style="background:#0F1117;padding:clamp(64px,10vw,160px) clamp(24px,4vw,64px);border-top:1px solid #27272A;">
+    <div class="bio-grid" style="max-width:1280px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,320px);gap:64px;align-items:stretch;">
+      <div class="bio-text" style="display:flex;flex-direction:column;">
+        <h2 style="font-size:clamp(24px,3.2vw,34px);font-weight:400;margin:0 0 32px 0;letter-spacing:-0.005em;">MAJA STEFANOVSKA · BIOGRAPHY</h2>
+        <p style="font-size:18px;line-height:1.7;margin:0 0 24px 0;color:#c7c4bc;">Maja Stefanovska (b. 1972, Skopje) is a contemporary Macedonian visual artist whose practice spans over three decades of raw canvas exploration, heavy oil pigments, tactile media, and spatial video art.</p>
+        <p style="font-size:18px;line-height:1.7;margin:0 0 24px 0;color:#c7c4bc;">Following her early training at the Applied Arts High School '2ri Avgust' (1990), she graduated from the Faculty of Fine Arts (FLU) in Skopje in 1996.</p>
+        <p style="font-size:18px;line-height:1.7;margin:0 0 48px 0;color:#c7c4bc;">Stefanovska's oeuvre focuses on themes of identity, spatial belonging, and non-verbal emotion—shifting fluidly from monumental oil paintings to multimedia installations and international video projects.</p>
+        <div class="bio-matrix" style="margin-top:auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px;">
+          <div style="display:flex;flex-direction:column;gap:16px;font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:#7a7a80;border-top:1px solid #27272A;padding-top:24px;">
+            <span>1996 FLU Skopje Graduate</span>
+            <span>Oil &amp; Mixed Media</span>
+            <span>Based in Skopje</span>
+          </div>
+          <div style="border-top:1px solid #27272A;border-left:1px solid #27272A;padding:24px 0 0 24px;">
+            <p style="font-size:22px;font-style:italic;font-weight:600;color:#F4F1EA;margin:0;">"The canvas is the only surface that argues back."</p>
+          </div>
+        </div>
+      </div>
+      <div class="bio-portrait" onMouseMove="{{onPortraitMove}}" onMouseEnter="{{onPortraitEnter}}" onMouseLeave="{{onPortraitLeave}}" onTouchStart="{{onPortraitTouch}}" onTouchMove="{{onPortraitTouch}}" onTouchEnd="{{onPortraitLeave}}" style="position:relative;aspect-ratio:3/4;overflow:hidden;border:1px solid #27272A;">
+        <image-slot id="artist-portrait-mono" shape="rect" src="uploads/Profilna-adcd6d38.jpg" placeholder="Drop studio portrait" style="position:absolute;inset:0;width:100%;height:100%;filter:grayscale(1) contrast(1.15);"></image-slot>
+        <image-slot id="artist-portrait-color" shape="rect" src="uploads/Profilna-adcd6d38.jpg" placeholder="Drop studio portrait (color)" style="position:absolute;inset:0;width:100%;height:100%;filter:grayscale(0.15) contrast(1.3) sepia(0.5) hue-rotate(-45deg) saturate(3);mix-blend-mode:screen;clip-path:{{portraitClip}};transition:clip-path 0.08s ease-out;"></image-slot>
+        <div style="position:absolute;inset:0;pointer-events:none;mix-blend-mode:overlay;background:{{portraitLight}};transition:background 0.1s ease-out;"></div>
+      </div>
+    </div>
+
+  </section>
+
+<!-- 4. ARCHIVE TABS -->
+  <section id="exhibitions" data-brush-color="#DC2626" style="background:#08080A;padding:clamp(64px,10vw,160px) clamp(24px,4vw,64px);border-top:1px solid #27272A;">
+    <div ref="{{exhibitionsRef}}" data-reveal-key="exhibitions" style="max-width:1000px;margin:0 auto;opacity:{{exhibitionsOpacity}};transform:{{exhibitionsTransform}};transition:opacity 0.9s cubic-bezier(.16,.84,.44,1),transform 0.9s cubic-bezier(.16,.84,.44,1);">
+      <div style="display:flex;gap:32px;margin-bottom:48px;border-bottom:1px solid #27272A;">
+        <sc-for list="{{archiveTabs}}" as="tab" hint-placeholder-count="3">
+          <button onClick="{{tab.onSelect}}" style="background:transparent;border:none;padding:12px 0;font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;cursor:none;color:{{tab.color}};border-bottom:2px solid {{tab.borderColor}};">{{tab.label}}</button>
+        </sc-for>
+      </div>
+      <sc-for list="{{activeEntries}}" as="ex" hint-placeholder-count="4">
+        <div style="display:flex;align-items:baseline;gap:32px;padding:20px 0;border-top:1px solid #27272A;">
+          <span style="font-family:'Fragment Mono',monospace;font-size:14px;color:#B91C1C;flex:0 0 60px;">{{ex.year}}</span>
+          <span style="font-size:clamp(20px,3vw,28px);font-style:italic;flex:1;">{{ex.title}}</span>
+          <span style="font-family:'Fragment Mono',monospace;font-size:12px;color:#7a7a80;text-transform:uppercase;">{{ex.place}}</span>
+        </div>
+      </sc-for>
+    </div>
+  </section>
+
+  <!-- 5. PRESS -->
+  <section data-brush-color="#DC2626" style="background:#0F1117;padding:clamp(64px,10vw,160px) clamp(24px,4vw,64px);border-top:1px solid #27272A;">
+    <div ref="{{pressRef}}" data-reveal-key="press" style="max-width:800px;margin:0 auto;text-align:center;opacity:{{pressOpacity}};transform:{{pressTransform}};transition:opacity 0.9s cubic-bezier(.16,.84,.44,1),transform 0.9s cubic-bezier(.16,.84,.44,1);">
+      <svg viewBox="0 0 560 40" style="width:100%;max-width:400px;height:32px;margin:0 auto 28px auto;display:block;">
+        <text x="280" y="28" text-anchor="middle" font-family="Fragment Mono, monospace" font-size="15" letter-spacing="2.5" fill="none" stroke="#DC2626" stroke-width="1" style="stroke-dasharray:820;animation:draw-erase 9s ease-in-out infinite;">PRESS / CRITICAL ACCLAIM</text>
+      </svg>
+      <p style="font-size:clamp(24px,3.2vw,36px);font-style:italic;line-height:1.5;margin:0 0 24px 0;">"{{currentQuote.text}}"</p>
+      <div style="font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#7a7a80;margin-bottom:32px;">- {{currentQuote.source}}</div>
+      <div style="display:flex;justify-content:center;gap:12px;">
+        <sc-for list="{{quotes}}" as="q" hint-placeholder-count="3">
+          <div onClick="{{q.onSelect}}" style="width:8px;height:8px;border-radius:50%;background:{{q.dotColor}};cursor:none;"></div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. STATS -->
+  <section ref="{{statsRef}}" data-brush-color="#DC2626" style="background:#08080A;padding:clamp(64px,10vw,160px) clamp(24px,4vw,64px);border-top:1px solid #27272A;">
+    <div style="max-width:1280px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:32px;text-align:center;">
+      <div>
+        <div style="font-size:clamp(48px,6vw,80px);color:#B91C1C;">{{stat1}}</div>
+        <div style="font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#7a7a80;margin-top:8px;">Years of Practice</div>
+      </div>
+      <div>
+        <div style="font-size:clamp(48px,6vw,80px);color:#B91C1C;">{{stat2}}</div>
+        <div style="font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#7a7a80;margin-top:8px;">Solo Exhibitions</div>
+      </div>
+      <div>
+        <div style="font-size:clamp(48px,6vw,80px);color:#B91C1C;">{{stat3}}</div>
+        <div style="font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#7a7a80;margin-top:8px;">Private Collections</div>
+      </div>
+      <div>
+        <div style="font-size:clamp(48px,6vw,80px);color:#B91C1C;">{{stat4}}</div>
+        <div style="font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:#7a7a80;margin-top:8px;">Artworks Archived</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. CONTACT + FOOTER -->
+  <section id="sec-contact" data-brush-color="#DC2626" style="background:#0F1117;padding:clamp(64px,10vw,160px) clamp(24px,4vw,64px) clamp(48px,8vw,120px) clamp(24px,4vw,64px);border-top:1px solid #27272A;">
+    <div ref="{{contactRef}}" data-reveal-key="contact" style="max-width:820px;margin:0 auto;opacity:{{contactOpacity}};transform:{{contactTransform}};transition:opacity 0.9s cubic-bezier(.16,.84,.44,1),transform 0.9s cubic-bezier(.16,.84,.44,1);">
+      <h2 style="font-size:clamp(48px,8vw,96px);font-style:italic;font-weight:400;line-height:1;margin:0 0 48px 0;">Let's Create / Acquire</h2>
+      <sc-if value="{{submitted}}" hint-placeholder-val="{{false}}">
+        <div style="font-family:'Fragment Mono',monospace;font-size:14px;letter-spacing:0.05em;text-transform:uppercase;color:#F4F1EA;border-top:1px solid #27272A;padding-top:32px;">MESSAGE RECEIVED - THE STUDIO WILL RESPOND DIRECTLY.</div>
+      </sc-if>
+      <sc-if value="{{formVisible}}" hint-placeholder-val="{{true}}">
+        <form action="https://formspree.io/f/majastefa@yahoo.com" method="POST" onSubmit="{{onFormSubmit}}" class="contact-form" style="display:flex;flex-direction:column;gap:32px;">
+          <input type="text" name="name" placeholder="NAME" required value="{{form.name}}" onChange="{{onNameChange}}" style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.2);color:#F4F1EA;font-family:'Fragment Mono',monospace;font-size:16px;text-transform:uppercase;padding:8px 0;outline:none;transition:box-shadow 0.3s ease,border-color 0.3s ease;" style-focus="border-bottom-color:#F4F1EA;box-shadow:0 1px 12px rgba(185,28,28,0.5);"/>
+          <input type="email" name="email" placeholder="EMAIL" required value="{{form.email}}" onChange="{{onEmailChange}}" style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.2);color:#F4F1EA;font-family:'Fragment Mono',monospace;font-size:16px;text-transform:uppercase;padding:8px 0;outline:none;transition:box-shadow 0.3s ease,border-color 0.3s ease;" style-focus="border-bottom-color:#F4F1EA;box-shadow:0 1px 12px rgba(185,28,28,0.5);"/>
+          <textarea name="message" placeholder="MESSAGE" required value="{{form.message}}" onChange="{{onMessageChange}}" rows="4" style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.2);color:#F4F1EA;font-family:'Fragment Mono',monospace;font-size:16px;text-transform:uppercase;padding:8px 0;outline:none;resize:none;transition:box-shadow 0.3s ease,border-color 0.3s ease;" style-focus="border-bottom-color:#F4F1EA;box-shadow:0 1px 12px rgba(185,28,28,0.5);"></textarea>
+          <button type="submit" style="margin-top:24px;height:56px;padding:0 36px;border-radius:999px;border:none;background:#F4F1EA;color:#08080A;font-family:'Fragment Mono',monospace;font-size:12px;letter-spacing:0.1em;text-transform:uppercase;cursor:none;width:fit-content;" style-hover="background:#B91C1C;color:#F4F1EA;">INITIATE PRIVATE DIALOGUE</button>
+        </form>
+      </sc-if>
+    </div>
+
+    <div onMouseEnter="{{onMarqueeEnter}}" onMouseLeave="{{onMarqueeLeave}}" style="margin-top:120px;overflow:hidden;white-space:nowrap;border-top:1px solid #27272A;border-bottom:1px solid #27272A;padding:16px 0;">
+      <div style="display:inline-block;animation:marquee-left {{marqueeSpeed}}s linear infinite;font-family:'Fragment Mono',monospace;font-size:14px;letter-spacing:0.1em;text-transform:uppercase;color:#7a7a80;opacity:0.6;">RAW EMOTION IS NOT FOR SALE / STUDIO ARCHIVE / SKOPJE / FLU / SELECTED WORKS / &nbsp;&nbsp;&nbsp;RAW EMOTION IS NOT FOR SALE / STUDIO ARCHIVE / SKOPJE / FLU / SELECTED WORKS / &nbsp;&nbsp;&nbsp;</div>
+    </div>
+
+    <div class="site-footer-row" style="max-width:1280px;margin:24px auto 0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;font-family:'Fragment Mono',monospace;font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:#7a7a80;">
+      <span>© 2026 MAJA STEFANOVSKA. ALL RIGHTS RESERVED.</span>
+      <span>STUDIO SKOPJE / NORTH MACEDONIA</span>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <a href="https://www.instagram.com/majastefanovska72/?hl=en" target="_blank" rel="noopener noreferrer" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;color:#7a7a80;" style-hover="color:#DC2626;">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="2.5" y="2.5" width="19" height="19" rx="5"/>
+            <circle cx="12" cy="12" r="4.2"/>
+            <circle cx="17.2" cy="6.8" r="0.9" fill="currentColor" stroke="none"/>
+          </svg>
+        </a>
+        <a href="#sec-hero" style="color:#7a7a80;text-decoration:none;height:44px;display:flex;align-items:center;" style-hover="color:#F4F1EA;">[ BACK TO TOP ↑ ]</a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  statsRef = React.createRef();
+  trailCanvasRef = React.createRef();
+  philosophyRef = React.createRef();
+  archiveRef = React.createRef();
+  exhibitionsRef = React.createRef();
+  pressRef = React.createRef();
+  studioRef = React.createRef();
+  contactRef = React.createRef();
+  _rafPending = false;
+  _countersStarted = false;
+  _quoteTimer = null;
+  _trailRaf = null;
+
+  state = {
+    cursorX: -100, cursorY: -100, cursorSize: 16, cursorLabel: '', cursorBrushColor: '#DC2626', cursorActive: false,
+    heroX: 0, heroY: 0, heroSlideIndex: 0,
+    studioX: 0, studioY: 0,
+    archiveHover: null,
+    hoverPreviewSrc: false,
+    activeCategory: null,
+    activeTab: 'solo',
+    menuOpen: false, menuPreviewSrc: false,
+    portraitHover: false, portraitMX: 50, portraitMY: 50,
+    quoteIndex: 0,
+    stat1: 0, stat2: 0, stat3: 0, stat4: 0,
+    revealed: {},
+    marqueeSlow: false,
+    tapeSlow: false,
+    form: { name: '', email: '', message: '' },
+    submitted: false,
+  };
+
+  componentDidMount() {
+    this._heroTimer = setInterval(() => {
+      this.setState(s => ({ heroSlideIndex: (s.heroSlideIndex + 1) % 10 }));
+    }, 4500);
+    this._quoteTimer = setInterval(() => {
+      this.setState(s => ({ quoteIndex: (s.quoteIndex + 1) % 3 }));
+    }, 5000);
+    this._io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting && !this._countersStarted) {
+          this._countersStarted = true;
+          this.runCounters();
+        }
+      });
+    }, { threshold: 0.3 });
+    if (this.statsRef.current) this._io.observe(this.statsRef.current);
+
+    this._revealIo = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          const key = e.target.getAttribute('data-reveal-key');
+          this.setState(s => ({ revealed: { ...s.revealed, [key]: true } }));
+        }
+      });
+    }, { threshold: 0.2 });
+    [this.philosophyRef, this.archiveRef, this.exhibitionsRef, this.pressRef, this.studioRef, this.contactRef].forEach(r => {
+      if (r.current) this._revealIo.observe(r.current);
+    });
+
+    this.setupTrail();
+  }
+  componentWillUnmount() {
+    clearInterval(this._quoteTimer);
+    clearInterval(this._heroTimer);
+    if (this._io) this._io.disconnect();
+    if (this._revealIo) this._revealIo.disconnect();
+    if (this._trailRaf) cancelAnimationFrame(this._trailRaf);
+    window.removeEventListener('mousemove', this._trailMove);
+    window.removeEventListener('resize', this._trailResize);
+  }
+
+  hexToRgb(hex) {
+    const h = hex.replace('#', '');
+    const n = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const num = parseInt(n, 16);
+    return `${(num >> 16) & 255},${(num >> 8) & 255},${num & 255}`;
+  }
+
+  setupTrail() {
+    const canvas = this.trailCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
+    resize();
+    this._trailResize = resize;
+    window.addEventListener('resize', resize);
+
+    this._points = [];
+    this._currentColor = '220,38,38';
+    const LIFE = 400;
+
+    this._trailMove = (e) => {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const zone = el && el.closest ? el.closest('[data-brush-color]') : null;
+      if (zone) this._currentColor = this.hexToRgb(zone.getAttribute('data-brush-color'));
+      const prev = this._points[this._points.length - 1];
+      const dx = prev ? e.clientX - prev.x : 0, dy = prev ? e.clientY - prev.y : 0;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const dt = prev ? Math.max(1, performance.now() - prev.t) : 16;
+      const speed = dist / dt;
+      const width = Math.max(3, Math.min(20, 18 - speed * 10));
+      this._points.push({ x: e.clientX, y: e.clientY, t: performance.now(), color: this._currentColor, width });
+      if (this._points.length > 200) this._points.shift();
+    };
+    window.addEventListener('mousemove', this._trailMove);
+
+    const loop = () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const now = performance.now();
+      this._points = this._points.filter(p => now - p.t < LIFE);
+      const pts = this._points;
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1], p = pts[i];
+        const age = now - p.t;
+        const alpha = Math.max(0, 1 - age / LIFE);
+        if (alpha <= 0) continue;
+        const midX = (prev.x + p.x) / 2, midY = (prev.y + p.y) / 2;
+        ctx.strokeStyle = `rgba(${p.color},${alpha * 0.55})`;
+        ctx.lineWidth = p.width;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.beginPath();
+        ctx.moveTo(prev.x, prev.y);
+        ctx.quadraticCurveTo(prev.x, prev.y, midX, midY);
+        ctx.lineTo(p.x, p.y);
+        ctx.stroke();
+        if (Math.random() < 0.3) {
+          const n = 1 + Math.floor(Math.random() * 2);
+          for (let j = 0; j < n; j++) {
+            const ox = p.x + (Math.random() - 0.5) * p.width * 2.2;
+            const oy = p.y + (Math.random() - 0.5) * p.width * 2.2;
+            ctx.fillStyle = `rgba(${p.color},${alpha * (0.1 + Math.random() * 0.2)})`;
+            ctx.beginPath();
+            ctx.arc(ox, oy, Math.random() * 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+      this._trailRaf = requestAnimationFrame(loop);
+    };
+    loop();
+  }
+
+  runCounters() {
+    const targets = { stat1: 30, stat2: 14, stat3: 42, stat4: 110 };
+    const duration = 1400;
+    const start = performance.now();
+    const step = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      const ease = 1 - Math.pow(1 - t, 3);
+      this.setState({
+        stat1: Math.round(targets.stat1 * ease),
+        stat2: Math.round(targets.stat2 * ease),
+        stat3: Math.round(targets.stat3 * ease),
+        stat4: Math.round(targets.stat4 * ease),
+      });
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  onGlobalMove = (e) => {
+    if (this._rafPending) return;
+    this._rafPending = true;
+    requestAnimationFrame(() => {
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const zone = el && el.closest ? el.closest('[data-brush-color]') : null;
+      const brushHex = zone ? zone.getAttribute('data-brush-color') : this.state.cursorBrushColor;
+      this.setState({ cursorX: e.clientX, cursorY: e.clientY, cursorBrushColor: brushHex });
+      this._rafPending = false;
+    });
+  };
+
+  onHeroMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    this.setState({ heroX: (e.clientX - rect.left) / rect.width - 0.5, heroY: (e.clientY - rect.top) / rect.height - 0.5 });
+  };
+  onHeroLeave = () => this.setState({ heroX: 0, heroY: 0 });
+
+  onMarqueeEnter = () => this.setState({ marqueeSlow: true });
+  onMarqueeLeave = () => this.setState({ marqueeSlow: false });
+  onTapeEnter = () => this.setState({ tapeSlow: true });
+  onTapeLeave = () => this.setState({ tapeSlow: false });
+
+  onStudioMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    this.setState({ studioX: (e.clientX - rect.left) / rect.width - 0.5, studioY: (e.clientY - rect.top) / rect.height - 0.5 });
+  };
+  onStudioLeave = () => this.setState({ studioX: 0, studioY: 0 });
+
+  onTileLeave = () => this.setState({ archiveHover: null, hoverPreviewSrc: false, cursorSize: 16, cursorLabel: '' });
+
+  onPortraitMove = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    this.setState({ portraitMX: ((e.clientX - rect.left) / rect.width) * 100, portraitMY: ((e.clientY - rect.top) / rect.height) * 100 });
+  };
+  onMenuToggle = () => this.setState(s => ({ menuOpen: !s.menuOpen, menuPreviewSrc: false }));
+  onMenuLeave = () => this.setState({ menuPreviewSrc: false });
+  onPortraitEnter = () => this.setState({ portraitHover: true });
+  onPortraitLeave = () => this.setState({ portraitHover: false });
+  onPortraitTouch = (e) => {
+    const t = e.touches && e.touches[0];
+    if (!t) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    this.setState({ portraitHover: true, portraitMX: ((t.clientX - rect.left) / rect.width) * 100, portraitMY: ((t.clientY - rect.top) / rect.height) * 100 });
+  };
+
+  onNameChange = (e) => this.setState(s => ({ form: { ...s.form, name: e.target.value } }));
+  onEmailChange = (e) => this.setState(s => ({ form: { ...s.form, email: e.target.value } }));
+  onMessageChange = (e) => this.setState(s => ({ form: { ...s.form, message: e.target.value } }));
+  submitForm = () => this.setState({ submitted: true });
+  onFormSubmit = (e) => { e.preventDefault(); this.setState({ submitted: true }); };
+
+  renderVals() {
+    const s = this.state;
+
+    const rawTiles = [
+      { id: 't1', imgId: 'tile-1', imgSrc: 'uploads/116.azurna-tishina-30x24sm-ram-41x35-1.jpg', col: '1 / 4', row: '1 / 7', title: 'Азурна Тишина', medium: 'Oil on Canvas, 30×24cm', brushColor: '#2563EB', category: 'oil' },
+      { id: 't2', imgId: 'tile-2', imgSrc: 'uploads/Маја-Стефановска_Абстрактен-цртеж-2-2021_Комбинирана-техника-на-фабријано_30х40.png.png', col: '4 / 7', row: '1 / 4', title: 'Абстрактен Цртеж 2', medium: 'Mixed Media on Fabriano, 30×40cm', brushColor: '#B45309', category: 'fabriano' },
+      { id: 't3', imgId: 'tile-3', imgSrc: 'uploads/ALEKSANDAR-PROKOPIEV-MAJA-STEFANOVSKA-SKOPSKO-HAIKU.jpg', col: '4 / 6', row: '4 / 9', title: 'Скопско Хаику', medium: 'Text & Mixed Media', brushColor: '#2563EB', category: 'haiku' },
+      { id: 't4', imgId: 'tile-4', imgSrc: 'uploads/Црвени емоции 3.jpg', col: '6 / 7', row: '4 / 9', title: 'Црвени Емоции', medium: 'Large Scale Installation', brushColor: '#B45309', category: 'oil' },
+      { id: 't5', imgId: 'tile-5', imgSrc: 'uploads/Црвени емоции 2-11b0fd60.jpg', col: '1 / 4', row: '7 / 9', title: 'Црвени Емоции - Detail', medium: 'Installation Detail', brushColor: '#2563EB', category: 'sketch' },
+    ];
+    const tileRotate = { t1: -2, t2: 1.5, t3: -1.5, t4: 2, t5: -2.5 };
+    const categoryLabelMap = { oil: 'Oil on Canvas / Heavy Textures', fabriano: 'Mixed Media on Fabriano Paper', haiku: 'Skopsko Haiku Series', sketch: 'Studio Drawings & Sketches' };
+    const tiles = rawTiles.map(t => {
+      const dimmedByHover = s.archiveHover && s.archiveHover !== t.id;
+      const dimmedByCategory = s.activeCategory && s.activeCategory !== t.category;
+      return {
+        ...t,
+        categoryLabel: categoryLabelMap[t.category],
+        hiddenByCategory: dimmedByCategory,
+        z: s.archiveHover === t.id ? 10 : 1,
+        dimFilter: (dimmedByHover || dimmedByCategory) ? 'brightness(0.4) blur(4px) opacity(0.4)' : 'none',
+        transform: s.archiveHover === t.id ? `scale(1.08) rotate(${tileRotate[t.id]}deg)` : 'scale(1)',
+        onEnter: (e) => {
+          const x = Math.round(e.clientX), y = Math.round(e.clientY);
+          this.setState({ archiveHover: t.id, cursorSize: 90, cursorLabel: `X:${x} Y:${y} / ${t.title} / ${t.medium}` });
+        },
+      };
+    });
+
+    const rawCategories = [
+      { id: null, label: 'All' },
+      { id: 'oil', label: 'Oil on Canvas / Heavy Textures' },
+      { id: 'fabriano', label: 'Mixed Media on Fabriano Paper' },
+      { id: 'haiku', label: 'Skopsko Haiku Series (Poetic Ink & Acrylic)' },
+      { id: 'sketch', label: 'Studio Drawings & Sketches' },
+    ];
+    const categories = rawCategories.map(c => ({
+      ...c,
+      borderColor: s.activeCategory === c.id ? '#B91C1C' : '#27272A',
+      textColor: s.activeCategory === c.id ? '#F4F1EA' : '#7a7a80',
+      onSelect: () => this.setState({ activeCategory: c.id }),
+    }));
+
+    const archiveData = {
+      solo: [
+        { year: '2013', title: '"Muteness" (Multimedia Project)', place: 'Mala Stanica, Skopje' },
+        { year: '2008', title: '"(Non) Belonging" (Oil Paintings)', place: 'Museum of the City of Skopje' },
+        { year: '2007', title: '"Home - Dwelling - Belonging"', place: 'Alfa Bank, Skopje' },
+        { year: '1999', title: '"U" (Animation Film & Installation)', place: 'CIX Gallery, Skopje' },
+      ],
+      group: [
+        { year: '2003', title: 'Projected Visions (Video Art)', place: 'Espace Senghor, Brussels, Belgium' },
+        { year: '2002', title: 'Projected Visions (Video Art)', place: 'ICCA, Bucharest, Romania' },
+        { year: '2001', title: 'Projected Visions (Video Art)', place: 'Strasbourg, France' },
+        { year: '-', title: 'Biennale of Young Artists', place: 'Skopje & Thessaloniki' },
+      ],
+      residencies: [
+        { year: '2011', title: 'Art Symposium', place: 'Dren, Prilep' },
+        { year: '2009', title: 'Art Symposium', place: 'Trebinje & Jahorina, BiH' },
+        { year: '2007', title: 'Art Colony', place: 'Papradiski Majstori' },
+        { year: '2005', title: 'Art Colony', place: 'Jalovik, Serbia' },
+        { year: '2003', title: 'Art Colony', place: 'Karpino' },
+        { year: '1999', title: 'Art Colony', place: 'Matejče' },
+      ],
+    };
+    const rawTabs = [
+      { id: 'solo', label: 'SOLO EXHIBITIONS' },
+      { id: 'group', label: 'GROUP & INTERNATIONAL SHOWS' },
+      { id: 'residencies', label: 'ART SYMPOSIUMS & COLONIES' },
+    ];
+    const archiveTabs = rawTabs.map(t => ({
+      ...t,
+      color: s.activeTab === t.id ? '#F4F1EA' : '#7a7a80',
+      borderColor: s.activeTab === t.id ? '#B91C1C' : 'transparent',
+      onSelect: () => this.setState({ activeTab: t.id }),
+    }));
+    const activeEntries = archiveData[s.activeTab];
+
+    const rawQuotes = [
+      { text: 'A body of work built on contradiction - precise and unruly at once.', source: 'CIX Gallery, Skopje' },
+      { text: 'Stefanovska paints the way others argue: directly, and without apology.', source: 'International Curator Notes' },
+      { text: 'Her canvases refuse decoration. They insist on friction.', source: 'Sloboden Pechat' },
+    ];
+    const quotes = rawQuotes.map((q, i) => ({
+      ...q,
+      dotColor: s.quoteIndex === i ? '#B91C1C' : '#27272A',
+      onSelect: () => this.setState({ quoteIndex: i }),
+    }));
+
+    const r = s.revealed;
+    const revealStyle = (visible, dir) => ({
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'none' : dir,
+    });
+    const phil = revealStyle(r.philosophy, 'translateY(50px) skewY(-3deg) scale(0.96)');
+    const arch = revealStyle(r.archive, 'translateY(60px) scale(0.94) rotate(-1deg)');
+    const exh = revealStyle(r.exhibitions, 'translateY(30px)');
+    const press = revealStyle(r.press, 'translateY(40px) scale(0.95)');
+    const studioT = revealStyle(r.studio, 'translateY(30px)');
+    const contact = revealStyle(r.contact, 'translateY(50px) skewY(2deg) scale(0.96)');
+
+    return {
+      cursorX: s.cursorX, cursorY: s.cursorY, cursorSize: s.cursorSize, cursorLabel: s.cursorLabel,
+      brushCursorColor: s.cursorBrushColor,
+      brushCursorHandleColor: s.cursorBrushColor === '#111111' ? '#3f3f45' : '#F4F1EA',
+      brushCursorTransform: `scale(${s.cursorSize > 16 ? 1.3 : 1.15})`,
+      hoverPreviewSrc: s.hoverPreviewSrc,
+      onGlobalMove: this.onGlobalMove,
+      trailCanvasRef: this.trailCanvasRef,
+      heroSlides: [
+        { imgId: 'hero-slide-1', imgSrc: 'uploads/Азурен импулс.png', pulseDur: 9, opacity: s.heroSlideIndex === 0 ? 1 : 0 },
+        { imgId: 'hero-slide-2', imgSrc: 'uploads/Апстрактна симфонија-1.png', pulseDur: 10, opacity: s.heroSlideIndex === 1 ? 1 : 0 },
+        { imgId: 'hero-slide-3', imgSrc: 'uploads/Screenshot 2026-09-08 175211.png', pulseDur: 8.5, opacity: s.heroSlideIndex === 2 ? 1 : 0 },
+        { imgId: 'hero-slide-4', imgSrc: 'uploads/Ц.jpg', pulseDur: 9.5, opacity: s.heroSlideIndex === 3 ? 1 : 0 },
+        { imgId: 'hero-slide-5', imgSrc: 'uploads/Маја-Стефановска_-Жолто-утро-2011_масло-на-платно_75х85.png-03ac55df.png', pulseDur: 11, opacity: s.heroSlideIndex === 4 ? 1 : 0 },
+        { imgId: 'hero-slide-6', imgSrc: 'uploads/Screenshot 2026-09-08 195538.png', pulseDur: 9.2, opacity: s.heroSlideIndex === 5 ? 1 : 0 },
+        { imgId: 'hero-slide-7', imgSrc: 'uploads/Screenshot 2026-09-08 195736.png', pulseDur: 10.4, opacity: s.heroSlideIndex === 6 ? 1 : 0 },
+        { imgId: 'hero-slide-8', imgSrc: 'uploads/Screenshot 2026-09-08 195815.png', pulseDur: 8.8, opacity: s.heroSlideIndex === 7 ? 1 : 0 },
+        { imgId: 'hero-slide-9', imgSrc: 'uploads/Маја-Стефановска_Абстрактен-пеисаж-6-2021_Акрил-на-платно_30х40.png.png', pulseDur: 9.6, opacity: s.heroSlideIndex === 8 ? 1 : 0 },
+        { imgId: 'hero-slide-10', imgSrc: 'uploads/Маја-Стефановска_Акт-со-жолта-позадина-2019_Масло-на-платно_30х40.png.png', pulseDur: 10.8, opacity: s.heroSlideIndex === 9 ? 1 : 0 },
+      ],
+      heroTiltX: s.heroX * -30, heroTiltY: s.heroY * -20, heroRX: s.heroY * -10, heroRY: s.heroX * 12,
+      onHeroMove: this.onHeroMove, onHeroLeave: this.onHeroLeave,
+      tiles, onTileLeave: this.onTileLeave,
+      categories,
+      portraitClip: s.portraitHover ? `circle(140px at ${s.portraitMX}% ${s.portraitMY}%)` : 'circle(0px at 50% 50%)',
+      portraitLight: s.portraitHover ? `radial-gradient(circle 220px at ${s.portraitMX}% ${s.portraitMY}%, rgba(244,241,234,0.4), transparent 70%)` : 'transparent',
+      onPortraitMove: this.onPortraitMove, onPortraitEnter: this.onPortraitEnter, onPortraitLeave: this.onPortraitLeave, onPortraitTouch: this.onPortraitTouch,
+      archiveTabs, activeEntries,
+      menuOpen: s.menuOpen, onMenuToggle: this.onMenuToggle, onMenuLeave: this.onMenuLeave,
+      menuPreviewSrc: s.menuPreviewSrc,
+      menuLinks: [
+        { href: '#sec-hero', label: '01 / HERO CANVAS', imgSrc: 'uploads/Азурен импулс.png' },
+        { href: '#sec-manifesto', label: '02 / MANIFESTO & PHILOSOPHY', imgSrc: 'uploads/Апстрактна симфонија-1.png' },
+        { href: '#sec-track', label: '03 / ARTWORK ARCHIVE (SELECTED WORKS)', imgSrc: 'uploads/116.azurna-tishina-30x24sm-ram-41x35-1.jpg' },
+        { href: '#sec-bio', label: '04 / BIOGRAPHY', imgSrc: 'uploads/Profilna.jpg' },
+        { href: '#exhibitions', label: '05 / EXHIBITIONS & ARCHIVE', imgSrc: 'uploads/Црвени емоции 3.jpg' },
+        { href: '#sec-contact', label: '06 / PRIVATE STUDIO DIALOGUE', imgSrc: 'uploads/Азурен импулс.png' },
+      ].map(l => ({
+        ...l,
+        color: '#F4F1EA',
+        onEnter: () => this.setState({ menuPreviewSrc: l.imgSrc }),
+      })),
+      currentQuote: rawQuotes[s.quoteIndex],
+      quotes,
+      statsRef: this.statsRef,
+      stat1: s.stat1, stat2: s.stat2, stat3: s.stat3, stat4: s.stat4,
+      studioTransform: `scale(1.1) translate(${s.studioX * -30}px,${s.studioY * -20}px)`,
+      onStudioMove: this.onStudioMove, onStudioLeave: this.onStudioLeave,
+      philosophyRef: this.philosophyRef, philosophyOpacity: phil.opacity, philosophyTransform: phil.transform,
+      archiveRef: this.archiveRef, archiveOpacity: arch.opacity, archiveTransform: arch.transform,
+      exhibitionsRef: this.exhibitionsRef, exhibitionsOpacity: exh.opacity, exhibitionsTransform: exh.transform,
+      pressRef: this.pressRef, pressOpacity: press.opacity, pressTransform: press.transform,
+      studioRef: this.studioRef, studioOpacity: studioT.opacity, studioTextTransform: studioT.transform,
+      contactRef: this.contactRef, contactOpacity: contact.opacity, contactTransform: contact.transform,
+      marqueeSpeed: s.marqueeSlow ? 70 : 22,
+      tapeSpeed: s.tapeSlow ? 60 : 20,
+      onMarqueeEnter: this.onMarqueeEnter, onMarqueeLeave: this.onMarqueeLeave,
+      onTapeEnter: this.onTapeEnter, onTapeLeave: this.onTapeLeave,
+      form: s.form,
+      formVisible: !s.submitted,
+      submitted: s.submitted,
+      onNameChange: this.onNameChange,
+      onEmailChange: this.onEmailChange,
+      onMessageChange: this.onMessageChange,
+      submitForm: this.submitForm,
+      onFormSubmit: this.onFormSubmit,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
